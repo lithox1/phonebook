@@ -48,6 +48,10 @@ let persons = [
   },
 ]
 
+app.get("/", (req, res) => {
+  res.send("Hello world!")
+})
+
 app.get("/api/persons", (req, res) => {
   res.json(persons)
 })
