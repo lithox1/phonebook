@@ -1,7 +1,9 @@
+require("dotenv").config()
 const express = require("express")
 const app = express()
 const morgan = require("morgan")
 const cors = require("cors")
+const Person = require("./models/person")
 
 morgan.token("body", function (req, res) {
   return JSON.stringify(req.body)
@@ -25,60 +27,33 @@ app.use(
   })
 )
 
-let persons = [
-  {
-    id: 1,
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: 2,
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: 3,
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: 4,
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-]
-
 app.get("/", (req, res) => {
   res.send("Hello world!")
 })
 
 app.get("/api/persons", (req, res) => {
-  res.json(persons)
+  Person.find({}).then((people) => {
+    res.json(people)
+  })
 })
 
-app.get("/info", (req, res) => {
-  const total = persons.length > 0 ? persons.length : 0
+app.get("/info", async (req, res) => {
+  const total = await Person.countDocuments({})
   const time = new Date()
   res.send(`Phonebook has info for ${total} people<br>${time}`)
 })
 
-app.get("/api/persons/:id", (req, res) => {
+app.get("/api/persons/:id", async (req, res) => {
   const id = req.params.id
-  const person = persons.find((p) => p.id == id)
-
+  const person = await Person.findById(id)
   if (person) {
     res.json(person)
   } else {
-    res.status(404).end()
-    console.log(res.statusMessage)
+    res.render("400 Person with given ID not found!")
   }
 })
 
-const generateId = () => {
-  return Math.floor(Math.random() * 9999)
-}
-
-app.post("/api/persons", (req, res) => {
+/* app.post("/api/persons", (req, res) => {
   const body = req.body
   if (!body.name || !body.number) {
     return res.status(400).json({
@@ -99,13 +74,13 @@ app.post("/api/persons", (req, res) => {
   persons = persons.concat(person)
   console.log(person.id)
   res.json(person)
-})
+}) */
 
-app.delete("/api/persons/:id", (req, res) => {
+/* app.delete("/api/persons/:id", (req, res) => {
   const id = req.params.id
   persons = persons.filter((p) => p.id != id)
   res.status(204).end()
-})
+}) */
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT)
