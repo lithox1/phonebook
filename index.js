@@ -5,6 +5,20 @@ const morgan = require("morgan")
 const cors = require("cors")
 const Person = require("./models/person")
 
+const errorHandler = (e, req, res, next) => {
+  console.error(e.message)
+  if (e.name === "CastError") {
+    return res.status(400).send({ error: "Malformatted ID" })
+  } else if (e.name === "ValidationError") {
+    return res.status(400).json({ error: e.message })
+  }
+  next(e)
+}
+
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: "Unknown endpoint" })
+}
+
 morgan.token("body", function (req, res) {
   return JSON.stringify(req.body)
 })
@@ -46,9 +60,9 @@ app.get("/api/persons/:id", (req, res, next) => {
     .catch((e) => next(e))
 })
 
-app.post("/api/persons/", (req, res) => {
+app.post("/api/persons/", (req, res, next) => {
   const body = req.body
-  if (!body.name || !body.number) {
+  if (body.name === undefined || body.number === undefined) {
     return res.status(400).json({ error: "Name or number missing" })
   }
 
@@ -56,17 +70,23 @@ app.post("/api/persons/", (req, res) => {
     name: body.name,
     number: body.number,
   })
-  person.save().then((savedPerson) => res.json(savedPerson))
+  person
+    .save()
+    .then((savedPerson) => res.json(savedPerson))
+    .catch((e) => next(e))
 })
 
 app.put("/api/persons/:id", (req, res, next) => {
-  const body = req.body
   const person = {
-    name: body.name,
-    number: body.number,
+    name: req.body.name,
+    number: req.body.number,
   }
 
-  Person.findByIdAndUpdate(req.params.id, person, { new: true })
+  Person.findByIdAndUpdate(req.params.id, person, {
+    new: true,
+    runValidators: true,
+    context: "query",
+  })
     .then((updatedPerson) => {
       res.json(updatedPerson)
     })
@@ -81,19 +101,8 @@ app.delete("/api/persons/:id", (req, res, next) => {
     .catch((e) => next(e))
 })
 
-const unknownEndpoint = (req, res) => {
-  res.status(404).send({ error: "Unknown endpoint" })
-}
-app.use(unknownEndpoint)
-
-const errorHandler = (e, req, res, next) => {
-  console.error(e.message)
-  if (e.name === "CastError") {
-    return res.status(400).send({ error: "Malformatted ID" })
-  }
-  next(e)
-}
 app.use(errorHandler)
+app.use(unknownEndpoint)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT)
