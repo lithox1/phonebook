@@ -13,7 +13,10 @@ const personSchema = new mongoose.Schema({
   name: { type: String, required: true, minLength: 3 },
   number: {
     type: String,
-    match: [/^\d{2,3}-?\d{6,}$/, "Please enter a valid phone number"],
+    match: [
+      /^\d{2,3}-?\d{6,}$/,
+      "Phone number must contain at least 8 digits (2-3 digits before the hyphen if present)",
+    ],
     required: true,
   },
 })
